@@ -21,7 +21,7 @@
     Enter the path(press enter to exit)>
     
 >enter the path where the comic was saved
-<br>
+
 **done**
  
  
