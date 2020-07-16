@@ -15,3 +15,13 @@
   **just open htmlc.exe**
   
 ## Process
+<br>
+>when execute
+
+    Enter the path(press enter to exit)>
+    
+>enter the path where the comic was saved
+ 
+ 
+ 
+ ## Demonstration
