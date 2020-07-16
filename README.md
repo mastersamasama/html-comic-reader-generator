@@ -20,7 +20,7 @@
 
  ```Enter the path(press enter to exit)>```
     
->enter the path where the comic was saved with keyboard or just drag the root folder into terminal
+>enter the path where the comic was saved with keyboard or just drag the folder into terminal
 
 **open index-mobile.html in directory that you entered and read the comic**
  
