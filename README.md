@@ -1,4 +1,5 @@
 # html-comic-reader-generator
-This application is for users that download comics on local drive for storage but also want to read beside . A html file as a c
+*application design for personal usage
+*generate a drop-down comic reader for image in one or more than one folder automatically
 
 ##requirements
