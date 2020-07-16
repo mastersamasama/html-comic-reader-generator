@@ -30,15 +30,15 @@
  
 ```
 comicdemo
-│  1t0.jpg
-│  2t0.jpg
-│  3t0.jpg
-│  4t0.jpg
-│  9t0.jpg
-│  10t0.jpg
-│  11t0.jpg
-│  
-└─chapter2
+  │  1t0.jpg
+  │  2t0.jpg
+  │  3t0.jpg
+  │  4t0.jpg
+  │  9t0.jpg
+  │  10t0.jpg
+  │  11t0.jpg
+  │  
+  └─chapter2
        │ 1t0.jpg
        │ 1t1.jpg
        │ 1t2.jpg
