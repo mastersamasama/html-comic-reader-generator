@@ -1,6 +1,6 @@
 # html-comic-reader-generator
   - **application design for personal usage**<br>
-  - **generate a drop-down comic reader for image in one or more than one folder automatically**
+  - **generate a drop-down comic reader for images in one or more than one folder automatically**
 
 ## Requirements
     python 3.x
