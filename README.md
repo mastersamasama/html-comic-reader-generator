@@ -2,4 +2,16 @@
   - **application design for personal usage**<br>
   - **generate a drop-down comic reader for image in one or more than one folder automatically**
 
-###requirements
+## Requirements
+    python 3.x
+    
+## Run
+### Method 1
+   **enter the directory of htmlc.py(change the name as you like) with cmd and enter :**
+
+    python htmlc.py
+    
+### Method 2
+  **just open htmlc.exe**
+  
+## Process
