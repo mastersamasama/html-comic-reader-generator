@@ -119,7 +119,7 @@ while isContinue:    #determine wheather exit the programme or execute again
 
     for img in filesArray:  #complete the html image reader with the image tag
         extchk=img.split('.') #create temporary variable to check filename extension
-        if extchk[1]!='html' and extchk[1]!='json': #files that not end with .html will be treated as image that was needed
+        if extchk[1]!='html' and extchk[1]!='json' and extchk[1]!='ini': #filter of unexpected file name extensions 
             ohtml.write('<img src="'+toLeftSlash(img).replace(slpath+'/','')+'" class="image-item"/>\n')
             if extchk[1]!='png' and extchk[1]!='jpg':
                 print('not sure file type : '+img)
