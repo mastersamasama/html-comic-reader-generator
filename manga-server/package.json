@@ -1,6 +1,6 @@
 {
   "name": "manga-server",
-  "version": "5.0.0-extreme",
+  "version": "5.0.0",
   "description": "Extreme performance manga content delivery server with 20,000+ req/s capability",
   "main": "src/extreme-performance-server.ts",
   "type": "module",

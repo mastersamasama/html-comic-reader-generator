@@ -235,7 +235,7 @@ const CONFIG = {
   // EXTREME Performance Settings
   // Server basics
   port: parseInt(process.env.PORT || "80"),
-  hostname: process.env.HOSTNAME || "0.0.0.0",
+  hostname: process.env.HOSTNAME || (process.env.NODE_ENV === "test" ? "localhost" : "0.0.0.0"),
   mangaRoot: process.env.MANGA_ROOT || "./本",
   
   // ULTRA-HIGH-MEMORY Performance settings (64GB RAM optimized)
@@ -1227,25 +1227,23 @@ class WebSocketHandler {
   handleConnection(ws: WebSocket, request: Request) {
     this.clients.add(ws);
     console.log(`📱 WebSocket client connected (${this.clients.size} total)`);
-
-    ws.addEventListener('message', (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        this.handleMessage(ws, data);
-      } catch (error) {
-        console.error('❌ WebSocket message error:', error);
-      }
-    });
-
-    ws.addEventListener('close', () => {
-      this.clients.delete(ws);
-      console.log(`📱 WebSocket client disconnected (${this.clients.size} total)`);
-    });
-
-    ws.addEventListener('error', (error) => {
-      console.error('❌ WebSocket error:', error);
-      this.clients.delete(ws);
-    });
+    
+    // Store WebSocket data for cleanup
+    ws.data = { connectedAt: Date.now() };
+  }
+  
+  handleWSMessage(ws: WebSocket, message: string | Buffer) {
+    try {
+      const data = typeof message === 'string' ? JSON.parse(message) : JSON.parse(message.toString());
+      this.handleMessage(ws, data);
+    } catch (error) {
+      console.error('❌ WebSocket message error:', error);
+    }
+  }
+  
+  handleWSClose(ws: WebSocket, code?: number, message?: string) {
+    this.clients.delete(ws);
+    console.log(`📱 WebSocket client disconnected (${this.clients.size} total)`);
   }
 
   private handleMessage(ws: WebSocket, data: any) {
@@ -1448,10 +1446,14 @@ class MangaServer {
       
       websocket: {
         open: (ws) => {
-          this.wsHandler.handleConnection(ws, new Request(''));
+          this.wsHandler.handleConnection(ws, new Request('ws://localhost/'));
         },
-        message: () => {}, // Handled in WebSocketHandler
-        close: () => {}    // Handled in WebSocketHandler
+        message: (ws, message) => {
+          this.wsHandler.handleWSMessage(ws, message);
+        },
+        close: (ws, code, message) => {
+          this.wsHandler.handleWSClose(ws, code, message);
+        }
       },
       
       error(error) {

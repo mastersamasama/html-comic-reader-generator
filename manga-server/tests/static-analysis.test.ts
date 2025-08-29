@@ -237,6 +237,6 @@ describe("Manga Server - Configuration Validation", () => {
     // Should have proper metadata
     expect(packageJson.version).toMatch(/^\d+\.\d+\.\d+$/);
     expect(packageJson.engines).toHaveProperty("bun");
-    expect(packageJson.keywords).toContain("performance");
+    expect(packageJson.keywords).toContain("extreme-performance");
   });
 });

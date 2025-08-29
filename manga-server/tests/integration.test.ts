@@ -1,4 +1,5 @@
 import { test, expect, describe, beforeAll, afterAll } from "bun:test";
+import "./setup"; // Import test server setup
 
 describe("Manga Server - Integration Tests", () => {
   const BASE_URL = "http://localhost:80";
