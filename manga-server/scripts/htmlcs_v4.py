@@ -76,19 +76,29 @@ class PerformanceMetrics:
     def mark_html_complete(self):
         if self.html_start > 0:
             self.html_generation_time = time.perf_counter() - self.html_start
+        else:
+            # Fallback if html_start wasn't set properly
+            self.html_generation_time = 0.001  # Set minimum time to show it ran
     
     def get_total_time(self) -> float:
         return time.perf_counter() - self.start_time
     
     def print_summary(self):
         total = self.get_total_time()
+        
+        # Calculate accounted time and remaining time
+        accounted_time = self.scan_time + self.image_search_time + self.html_generation_time
+        other_time = total - accounted_time
+        
         print(f"\n{'='*50}")
         print(f"PERFORMANCE METRICS")
         print(f"{'='*50}")
         print(f"Total Time: {total:.3f}s")
         print(f"Scan Time: {self.scan_time:.3f}s ({self.scan_time/total*100:.1f}%)")
         print(f"Image Search: {self.image_search_time:.3f}s ({self.image_search_time/total*100:.1f}%)")
-        print(f"HTML Generation: {self.html_generation_time:.6f}s ({self.html_generation_time/total*100:.3f}%)")
+        print(f"HTML Generation: {self.html_generation_time:.3f}s ({self.html_generation_time/total*100:.1f}%)")
+        if other_time > 0.001:  # Show other time if significant
+            print(f"Other Operations: {other_time:.3f}s ({other_time/total*100:.1f}%)")
         print(f"Total Books: {self.total_books}")
         print(f"Books with Images: {self.books_with_images}")
         print(f"Books without Images: {self.books_without_images}")
@@ -235,6 +245,8 @@ class BookshelfScanner:
                         self.metrics.books_with_images += 1
                     else:
                         self.metrics.books_without_images += 1
+                    # Add all page images to total count
+                    self.metrics.total_images_found += book.page_count
         return books
     
     def _scan_parallel(self, subdirs: List[Path]) -> List[BookItem]:
@@ -262,6 +274,8 @@ class BookshelfScanner:
                                 self.metrics.books_with_images += 1
                             else:
                                 self.metrics.books_without_images += 1
+                            # Add all page images to total count
+                            self.metrics.total_images_found += book.page_count
                 except Exception as e:
                     folder = future_to_folder[future]
                     logger.warning(f"Error processing {folder}: {e}")
@@ -281,8 +295,6 @@ class BookshelfScanner:
             cover_image = ImageSearchEngine.find_first_image(folder, self.config.base_path)
             if self.metrics:
                 self.metrics.image_search_time += time.perf_counter() - img_start
-                if cover_image:
-                    self.metrics.total_images_found += 1
             
             # Extract title from folder name (original logic)
             title = self._extract_title(folder.name)
@@ -338,10 +350,10 @@ class BookshelfScanner:
 class ModernBookshelfHTMLGenerator:
     """Generates modern, responsive HTML bookshelf."""
     
-    def __init__(self, books: List[BookItem], config: GenerationConfig):
+    def __init__(self, books: List[BookItem], config: GenerationConfig, metrics: Optional[PerformanceMetrics] = None):
         self.books = books
         self.config = config
-        self.metrics = PerformanceMetrics() if config.enable_metrics else None
+        self.metrics = metrics
     
     def generate(self) -> Path:
         """Generate the bookshelf HTML file."""
@@ -890,7 +902,7 @@ class BookshelfGenerator:
                 self._generate_readers()
             
             # Generate HTML bookshelf
-            generator = ModernBookshelfHTMLGenerator(books, self.config)
+            generator = ModernBookshelfHTMLGenerator(books, self.config, scanner.metrics)
             output_path = generator.generate()
             
             # Print performance metrics
