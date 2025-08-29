@@ -1,0 +1,58 @@
+{
+  "name": "manga-system",
+  "version": "3.0.0",
+  "description": "Complete manga management system with reader generator, bookshelf, and high-performance server",
+  "type": "module",
+  "scripts": {
+    "start": "bun run manga-server/src/optimized-server.ts",
+    "start:ultra": "bun run manga-server/src/ultra-performance-server.ts",
+    "dev": "bun run --hot manga-server/src/optimized-server.ts",
+    "server": "bun run start",
+    "setup": "bun run manga-server/scripts/setup.ts",
+    "health": "bun run manga-server/scripts/health-check.ts",
+    "stats": "bun run manga-server/scripts/stats.ts",
+    "monitor": "bun run manga-server/scripts/monitor.ts",
+    "benchmark": "bun run manga-server/scripts/benchmark.ts",
+    "genshelf": "python manga-server/scripts/htmlcs_v4.py",
+    "genreader": "python manga-server/scripts/htmlcmb_v3.py",
+    "genreader:all": "find ./本 -maxdepth 1 -type d -name '*.*' -exec basename {} \\; | while read folder; do echo \"Generating reader for: $folder\"; python manga-server/scripts/htmlcmb_v3.py \"$folder\"; done",
+    "quick-setup": "bun run setup && bun run genshelf && echo '✅ Ultra-Performance System ready! Run: bun run start'",
+    "full-gen": "bun run genshelf && bun run genreader:all",
+    "serve-dev": "PORT=3000 bun run --hot manga-server/src/optimized-server.ts",
+    "serve-prod": "NODE_ENV=production bun run --expose-gc manga-server/src/optimized-server.ts",
+    "serve-ultra": "NODE_ENV=production CACHE_SIZE_MB=2048 MAX_CONNECTIONS=20000 bun run --expose-gc manga-server/src/optimized-server.ts",
+    "clean": "rm -rf manga-server/dist manga-server/logs *.log manga-index.json",
+    "test": "cd manga-server && bun test",
+    "test:perf": "bun run manga-server/scripts/performance-test.ts",
+    "docker": "cd manga-server && bun run docker:compose",
+    "docker-dev": "cd manga-server && bun run docker:compose:dev",
+    "update-all": "bun run full-gen && echo '📚 All manga readers updated!'",
+    "rebuild-index": "rm -f manga-index.json && echo '🔄 Index will be rebuilt on next server start'"
+  },
+  "keywords": [
+    "manga",
+    "reader",
+    "bookshelf",
+    "server",
+    "content-delivery",
+    "bun"
+  ],
+  "author": "Manga System",
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "latest"
+  },
+  "config": {
+    "mangaRoot": "./本",
+    "serverPort": 80,
+    "devPort": 3000
+  },
+  "repository": {
+    "type": "git",
+    "url": "."
+  }
+}
