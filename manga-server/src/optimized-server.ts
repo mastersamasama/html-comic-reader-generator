@@ -540,7 +540,7 @@ class FastRouteMatcher {
 // ============================================================================
 
 class PersistentMangaIndex {
-  private readonly indexPath = 'manga-index.json';
+  private readonly indexPath = join(import.meta.dir, '../data/manga-index.json');
   private readonly inverted = new Map<string, Set<string>>();
   private index: MangaItem[] = [];
   private lastScan = 0;
