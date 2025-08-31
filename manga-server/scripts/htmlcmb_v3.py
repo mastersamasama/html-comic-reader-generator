@@ -1296,23 +1296,46 @@ class MangaHTMLGenerator:
             }}
 
             setupObservers() {{
-                // Intersection Observer for page tracking
+                // Optimized Intersection Observer for page tracking
                 const observer = new IntersectionObserver((entries) => {{
+                    // Find most visible page using viewport center alignment
+                    const viewportCenter = window.innerHeight / 2;
+                    let bestPage = null;
+                    let bestDistance = Infinity;
+                    
                     entries.forEach(entry => {{
-                        if (entry.isIntersecting && entry.intersectionRatio > 0.5) {{
-                            const pageNum = parseInt(entry.target.id.split('-')[1]);
-                            if (pageNum && pageNum !== this.currentPage) {{
-                                this.currentPage = pageNum;
-                                // Don't update progress if slider is being actively used
-                                if (!this.isSliderActive) {{
-                                    this.updateProgress();
-                                    this.updateChapter();
-                                }}
+                        if (entry.isIntersecting && entry.intersectionRatio > 0.2) {{
+                            const rect = entry.boundingClientRect;
+                            const pageCenter = rect.top + rect.height / 2;
+                            const distance = Math.abs(pageCenter - viewportCenter);
+                            
+                            if (distance < bestDistance) {{
+                                bestDistance = distance;
+                                bestPage = entry.target;
                             }}
                         }}
                     }});
-                }}, {{ threshold: 0.5 }});
+                    
+                    if (bestPage) {{
+                        const pageNum = parseInt(bestPage.id.split('-')[1]);
+                        if (pageNum && pageNum !== this.currentPage) {{
+                            this.currentPage = pageNum;
+                            if (!this.isSliderActive) {{
+                                this.updateProgress();
+                                this.updateChapter();
+                            }}
+                        }}
+                    }}
+                }}, {{ 
+                    threshold: [0.2, 0.5, 0.8],
+                    rootMargin: '0px'
+                }});
 
+                // Performance warning for large collections
+                if (this.pages.length > 3000) {{
+                    console.warn(`Large collection detected (${{this.pages.length}} pages). Consider using virtual scroll version.`);
+                }}
+                
                 this.pages.forEach(page => observer.observe(page));
             }}
 

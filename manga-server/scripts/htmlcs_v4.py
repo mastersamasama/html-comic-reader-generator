@@ -161,7 +161,7 @@ class ImageSearchEngine:
 class ReaderFileFinder:
     """Finds reader HTML files with priority ordering."""
     
-    READER_PRIORITIES = ['index-mb.html', 'index.html', 'index-mobile.html']
+    READER_PRIORITIES = ['index-mb-virtualscroll.html', 'index-mb.html', 'index.html', 'index-mobile.html']
     
     @classmethod
     def find_reader_file(cls, folder: Path, base_path: Path) -> Optional[str]:
@@ -285,8 +285,11 @@ class BookshelfScanner:
     def _analyze_book_folder(self, folder: Path) -> Optional[BookItem]:
         """Analyze a single book folder and create BookItem."""
         try:
-            # Find reader HTML file
-            reader_link = ReaderFileFinder.find_reader_file(folder, self.config.base_path)
+            # Count pages and subfolders first
+            page_count, subfolder_count = self._count_content(folder)
+            
+            # Auto-generate virtual scroll reader for large collections
+            reader_link = self._ensure_optimal_reader(folder, page_count)
             if not reader_link:
                 return None
             
@@ -298,9 +301,6 @@ class BookshelfScanner:
             
             # Extract title from folder name (original logic)
             title = self._extract_title(folder.name)
-            
-            # Count pages and subfolders
-            page_count, subfolder_count = self._count_content(folder)
             
             return BookItem(
                 title=title,
@@ -314,6 +314,48 @@ class BookshelfScanner:
         except Exception as e:
             logger.warning(f"Error analyzing folder {folder}: {e}")
             return None
+    
+    def _ensure_optimal_reader(self, folder: Path, page_count: int) -> Optional[str]:
+        """Ensure optimal reader exists (virtual scroll for large collections)."""
+        # Check for existing readers
+        existing_reader = ReaderFileFinder.find_reader_file(folder, self.config.base_path)
+        
+        # Determine if virtual scroll is needed
+        needs_virtual_scroll = page_count > 5000
+        virtual_scroll_exists = (folder / "index-mb-virtualscroll.html").exists()
+        
+        if needs_virtual_scroll and not virtual_scroll_exists:
+            # Generate virtual scroll reader for large collection
+            logger.info(f"Generating virtual scroll reader for {folder.name} ({page_count} pages)")
+            try:
+                # Import with absolute path
+                import sys
+                import importlib.util
+                
+                script_dir = Path(__file__).parent
+                virtualscroll_path = script_dir / "htmlcmb_v3_virtualscroll.py"
+                
+                if virtualscroll_path.exists():
+                    spec = importlib.util.spec_from_file_location("htmlcmb_v3_virtualscroll", virtualscroll_path)
+                    htmlcmb_v3_virtualscroll = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(htmlcmb_v3_virtualscroll)
+                    
+                    htmlcmb_v3_virtualscroll.create_virtual_scroll_reader(str(folder))
+                    # Return full relative path
+                    virtual_file = folder / "index-mb-virtualscroll.html"
+                    return str(virtual_file.relative_to(self.config.base_path)).replace('\\', '/')
+                else:
+                    logger.warning(f"Virtual scroll script not found: {virtualscroll_path}")
+            except Exception as e:
+                logger.warning(f"Failed to generate virtual scroll reader for {folder}: {e}")
+        
+        # Use virtual scroll if available for large collections
+        if needs_virtual_scroll and virtual_scroll_exists:
+            virtual_file = folder / "index-mb-virtualscroll.html"
+            return str(virtual_file.relative_to(self.config.base_path)).replace('\\', '/')
+        
+        # Fall back to existing reader
+        return existing_reader
     
     def _extract_title(self, folder_name: str) -> str:
         """Extract title using original htmlcs.py logic: take LAST part after splitting by dots."""
