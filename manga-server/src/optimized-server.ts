@@ -844,7 +844,14 @@ class StaticHandler {
 
   async handle(request: Request): Promise<Response> {
     const url = new URL(request.url);
-    let pathname = decodeURIComponent(url.pathname);
+    let pathname: string;
+    
+    try {
+      pathname = decodeURIComponent(url.pathname);
+    } catch (error) {
+      // Fallback for malformed URI encoding
+      pathname = url.pathname;
+    }
     
     // Default to index.html for root
     if (pathname === '/') {
@@ -854,6 +861,12 @@ class StaticHandler {
     // Security: Prevent path traversal
     const filePath = join(this.rootPath, pathname);
     const resolvedPath = resolve(filePath);
+    
+    // Debug all non-API paths
+    if (!pathname.startsWith('/api/')) {
+      console.log('🐛 DEBUG - pathname:', JSON.stringify(pathname));
+      console.log('🐛 DEBUG - original URL:', request.url);
+    }
     
     if (!resolvedPath.startsWith(resolve(this.rootPath))) {
       return new Response('Forbidden', { 

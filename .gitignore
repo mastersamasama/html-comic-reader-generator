@@ -19,8 +19,7 @@ manga-collection/
 # Generated manga files
 index.html
 index-mb.html
-manga-server/data/manga-index.json
-manga-server/data/extreme-manga-index.json
+manga-server/data
 
 # ===== SENSITIVE DATA =====
 # Environment variables and secrets

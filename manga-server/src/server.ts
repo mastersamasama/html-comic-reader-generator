@@ -305,9 +305,9 @@ class MangaScanner {
       const name = mangaPath.split(/[/\\]/).pop() || '';
       const files = await readdir(mangaPath, { recursive: true });
       
-      // Find reader HTML files
+      // Find reader HTML files (prioritize virtual scroll for large collections)
       const readerFile = files.find(f => 
-        f === 'index-mb.html' || f === 'index.html'
+        f === 'index-mb-virtualscroll.html' || f === 'index-mb.html' || f === 'index.html'
       );
       
       // Find image files for pages and cover
