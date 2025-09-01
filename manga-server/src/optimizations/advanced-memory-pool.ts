@@ -449,6 +449,57 @@ export class AdvancedMemoryPool {
       }
     }, 10000); // Run every 10 seconds
   }
+
+  // CRITICAL FIX: Add missing handleMemoryPressure method for IntegratedOptimizationSystem
+  async handleMemoryPressure(level: 'low' | 'medium' | 'high'): Promise<void> {
+    const reductionPercent = {
+      low: 20,      // Reduce pool sizes by 20%
+      medium: 40,   // Reduce pool sizes by 40%
+      high: 60      // Reduce pool sizes by 60%
+    }[level];
+
+    console.log(`🧹 Memory pool handling ${level} memory pressure - reducing by ${reductionPercent}%`);
+
+    let totalReleased = 0;
+    let poolsCleared = 0;
+
+    // Trim pools based on pressure level
+    for (const [size, pool] of this.pools.entries()) {
+      const currentSize = pool.currentSize;
+      const targetReduction = Math.floor(currentSize * (reductionPercent / 100));
+      
+      if (targetReduction > 0) {
+        pool.trim(currentSize - targetReduction);
+        totalReleased += targetReduction;
+        poolsCleared++;
+      }
+    }
+
+    // Clear hot pools under high pressure
+    if (level === 'high' || level === 'medium') {
+      const hotPoolsCleared = this.hotPools.size;
+      this.hotPools.clear();
+      poolsCleared += hotPoolsCleared;
+      console.log(`🧹 Cleared ${hotPoolsCleared} hot pools due to ${level} memory pressure`);
+    }
+
+    // Clear usage patterns under extreme pressure
+    if (level === 'high') {
+      this.usagePatterns.clear();
+      // Re-initialize patterns for active size classes
+      for (const size of this.sizeClasses) {
+        this.usagePatterns.set(size, []);
+      }
+      console.log('🧹 Cleared usage patterns due to high memory pressure');
+    }
+
+    console.log(`🧹 Memory pool pressure handling complete - released ${totalReleased} buffers from ${poolsCleared} pools`);
+  }
+
+  // CRITICAL FIX: Add alias for IntegratedOptimizationSystem compatibility
+  getPerformanceMetrics() {
+    return this.getStats();
+  }
 }
 
 // NUMA-aware memory allocation helpers

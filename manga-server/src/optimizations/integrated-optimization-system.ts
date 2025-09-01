@@ -36,12 +36,12 @@ interface SystemMetrics {
 }
 
 class IntegratedOptimizationSystem {
-  private cache: HybridCacheSystem;
-  private memoryPool: AdvancedMemoryPool;
-  private ioBatcher: AsyncIOBatcher;
-  private pipeline: UltraFastPipeline;
-  private searchEngine: AdvancedSearchEngine;
-  private analytics: PerformanceAnalytics;
+  public readonly cache: HybridCacheSystem;
+  public readonly memoryPool: AdvancedMemoryPool;
+  public readonly ioBatcher: AsyncIOBatcher;
+  public readonly pipeline: UltraFastPipeline;
+  public readonly searchEngine: AdvancedSearchEngine;
+  public readonly analytics: PerformanceAnalytics;
   
   private config: OptimizationConfig;
   private isInitialized = false;
@@ -197,8 +197,8 @@ class IntegratedOptimizationSystem {
       ? this.analytics?.getPerformanceInsights() 
       : null;
     
-    const cacheMetrics = this.cache.getAdvancedMetrics();
-    const memoryMetrics = this.memoryPool.getPerformanceMetrics();
+    const cacheMetrics = this.cache.getStats();
+    const memoryMetrics = this.memoryPool.getStats();
     const ioMetrics = this.ioBatcher.getMetrics();
     const pipelineMetrics = this.pipeline.getPerformanceMetrics();
     const searchMetrics = this.config.searchEnabled 

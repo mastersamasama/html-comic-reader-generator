@@ -595,6 +595,161 @@ export class HybridCacheSystem<T = any> {
       }
     }, 5000); // Run every 5 seconds
   }
+
+  // Server compatibility methods
+  delete(key: string): boolean {
+    let deleted = false;
+    
+    if (this.l1Cache.has(key)) {
+      const entry = this.l1Cache.get(key)!;
+      this.l1Cache.delete(key);
+      this.l1Size -= entry.size;
+      this.stats.get('L1')!.evictions++;
+      deleted = true;
+    }
+    
+    if (this.l2Cache.has(key)) {
+      const entry = this.l2Cache.get(key)!;
+      this.l2Cache.delete(key);
+      this.l2Size -= entry.size;
+      this.stats.get('L2')!.evictions++;
+      deleted = true;
+    }
+    
+    if (this.l3Cache.has(key)) {
+      const entry = this.l3Cache.get(key)!;
+      this.l3Cache.delete(key);
+      this.l3Size -= entry.size;
+      this.stats.get('L3')!.evictions++;
+      deleted = true;
+    }
+    
+    if (deleted) {
+      this.accessPatterns.delete(key);
+    }
+    
+    return deleted;
+  }
+
+  get size(): number {
+    return this.l1Cache.size + this.l2Cache.size + this.l3Cache.size;
+  }
+
+  keys(): IterableIterator<string> {
+    const allKeys = new Set<string>();
+    
+    for (const key of this.l1Cache.keys()) {
+      allKeys.add(key);
+    }
+    for (const key of this.l2Cache.keys()) {
+      allKeys.add(key);
+    }
+    for (const key of this.l3Cache.keys()) {
+      allKeys.add(key);
+    }
+    
+    return allKeys.keys();
+  }
+
+  has(key: string): boolean {
+    return this.l1Cache.has(key) || this.l2Cache.has(key) || this.l3Cache.has(key);
+  }
+
+  adaptToMemoryPressure(): void {
+    // Reduce cache sizes under memory pressure
+    const memoryUsage = process.memoryUsage();
+    const heapUsedMB = memoryUsage.heapUsed / (1024 * 1024);
+    
+    if (heapUsedMB > 500) { // High memory pressure
+      // Reduce L3 cache by 50%
+      const l3Target = Math.floor(this.l3Cache.size / 2);
+      let evicted = 0;
+      
+      for (const [key, entry] of this.l3Cache) {
+        if (evicted >= l3Target) break;
+        this.l3Cache.delete(key);
+        this.l3Size -= entry.size;
+        this.stats.get('L3')!.evictions++;
+        evicted++;
+      }
+      
+      // Reduce L2 cache by 25%
+      const l2Target = Math.floor(this.l2Cache.size / 4);
+      evicted = 0;
+      
+      for (const [key, entry] of this.l2Cache) {
+        if (evicted >= l2Target) break;
+        this.l2Cache.delete(key);
+        this.l2Size -= entry.size;
+        this.stats.get('L2')!.evictions++;
+        evicted++;
+      }
+      
+      console.log('🧹 Cache adapted to memory pressure - reduced by ~35%');
+    }
+  }
+
+  // CRITICAL FIX: Add missing handleMemoryPressure method for IntegratedOptimizationSystem
+  async handleMemoryPressure(level: 'low' | 'medium' | 'high'): Promise<void> {
+    const reductionPercent = {
+      low: 10,      // Reduce cache by 10%
+      medium: 25,   // Reduce cache by 25%
+      high: 50      // Reduce cache by 50%
+    }[level];
+
+    console.log(`🧹 Cache handling ${level} memory pressure - reducing by ${reductionPercent}%`);
+
+    // Calculate targets for each tier
+    const l1Target = Math.floor(this.l1Cache.size * (reductionPercent / 100));
+    const l2Target = Math.floor(this.l2Cache.size * (reductionPercent / 100));
+    const l3Target = Math.floor(this.l3Cache.size * (reductionPercent / 100));
+
+    let totalEvicted = 0;
+
+    // Evict from L3 first (least important)
+    let evicted = 0;
+    for (const [key, entry] of this.l3Cache) {
+      if (evicted >= l3Target) break;
+      this.l3Cache.delete(key);
+      this.l3Size -= entry.size;
+      this.stats.get('L3')!.evictions++;
+      evicted++;
+      totalEvicted++;
+    }
+
+    // Evict from L2 if high pressure
+    if (level === 'high' || level === 'medium') {
+      evicted = 0;
+      for (const [key, entry] of this.l2Cache) {
+        if (evicted >= l2Target) break;
+        this.l2Cache.delete(key);
+        this.l2Size -= entry.size;
+        this.stats.get('L2')!.evictions++;
+        evicted++;
+        totalEvicted++;
+      }
+    }
+
+    // Only touch L1 under extreme pressure
+    if (level === 'high') {
+      evicted = 0;
+      for (const [key, entry] of this.l1Cache) {
+        if (evicted >= l1Target) break;
+        this.l1Cache.delete(key);
+        this.l1Size -= entry.size;
+        this.stats.get('L1')!.evictions++;
+        evicted++;
+        totalEvicted++;
+      }
+    }
+
+    console.log(`🧹 Cache pressure handling complete - evicted ${totalEvicted} entries`);
+  }
+
+  // CRITICAL FIX: Add alias for IntegratedOptimizationSystem compatibility
+  getAdvancedMetrics() {
+    return this.getStats();
+  }
 }
 
 // Export singleton instance for easy usage

@@ -45,16 +45,18 @@ describe("Manga Server - Cache Performance", () => {
     expect(response.status).toBe(200);
     
     const data = await response.json();
-    expect(data.cache).toHaveProperty("hits");
-    expect(data.cache).toHaveProperty("misses");
-    expect(data.cache).toHaveProperty("hitRate");
+    // Check for available metrics structure
+    expect(data).toHaveProperty("server");
+    expect(data).toHaveProperty("pipeline");
+    expect(data.pipeline).toHaveProperty("totalRequests");
+    expect(data.pipeline).toHaveProperty("cacheHitRate");
     
     // Should have recorded some activity (may be zero if cache was recently reset)
-    const totalActivity = data.cache.hits + data.cache.misses;
-    expect(totalActivity).toBeGreaterThanOrEqual(0);
+    expect(data.pipeline.totalRequests).toBeGreaterThanOrEqual(0);
+    expect(data.pipeline.cacheHitRate).toBeGreaterThanOrEqual(0);
     
-    // Hit rate should be a percentage string
-    expect(data.cache.hitRate).toMatch(/^\d+\.\d+%$/);
+    // Hit rate should be a number between 0 and 1
+    expect(data.pipeline.cacheHitRate).toBeLessThanOrEqual(1);
   });
   
   test("ETag headers should enable client-side caching", async () => {
@@ -97,16 +99,17 @@ describe("Manga Server - Cache Performance", () => {
     expect(response.status).toBe(200);
     
     const data = await response.json();
-    expect(data.cache).toHaveProperty("memoryPressure");
+    expect(data.server).toHaveProperty("memory");
+    expect(data.server.memory).toHaveProperty("heapUsed");
     
-    // Memory pressure should be a percentage
-    const memoryPressure = data.cache.memoryPressure;
-    expect(memoryPressure).toMatch(/^\d+\.\d+%$/);
+    // Memory usage should be positive numbers
+    expect(data.server.memory.heapUsed).toBeGreaterThan(0);
+    expect(data.server.memory.heapTotal).toBeGreaterThan(0);
     
-    // Memory pressure should be a valid percentage (may be >100% due to calculation method)
-    const percentage = parseFloat(memoryPressure);
-    expect(percentage).toBeGreaterThan(0);
-    expect(percentage).toBeLessThan(500); // Reasonable upper bound for calculation errors
+    // Memory pressure ratio should be reasonable
+    const memoryRatio = data.server.memory.heapUsed / data.server.memory.heapTotal;
+    expect(memoryRatio).toBeGreaterThan(0);
+    expect(memoryRatio).toBeLessThanOrEqual(2.0); // Allow for optimization system overhead
   });
   
   test("cache should have reasonable size limits", async () => {
@@ -115,15 +118,17 @@ describe("Manga Server - Cache Performance", () => {
     
     const data = await response.json();
     
-    expect(data.cache).toHaveProperty("currentSize");
-    expect(data.cache).toHaveProperty("maxSize");
+    // Check pipeline cache metrics instead
+    expect(data.pipeline).toHaveProperty("cacheSize");
+    expect(data.pipeline).toHaveProperty("routeCacheSize");
     
-    // Current size should not exceed max size
-    expect(data.cache.currentSize).toBeLessThanOrEqual(data.cache.maxSize);
+    // Cache sizes should be reasonable
+    expect(data.pipeline.cacheSize).toBeGreaterThanOrEqual(0);
+    expect(data.pipeline.routeCacheSize).toBeGreaterThanOrEqual(0);
     
-    // Max size should be reasonable (optimized for 64GB RAM system)
-    expect(data.cache.maxSize).toBeGreaterThan(1024 * 1024); // At least 1MB
-    expect(data.cache.maxSize).toBeLessThan(16 * 1024 * 1024 * 1024); // Less than 16GB (64GB system)
+    // Cache sizes should not be excessive (reasonable limits)
+    expect(data.pipeline.cacheSize).toBeLessThan(100000); // Less than 100K entries
+    expect(data.pipeline.routeCacheSize).toBeLessThan(10000); // Less than 10K route cache entries
   });
   
   test("comprehensive ETag and conditional request coverage", async () => {

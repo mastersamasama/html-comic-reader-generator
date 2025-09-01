@@ -236,6 +236,76 @@ class PerformanceAnalytics {
     }
   }
 
+  private detectAnomalies(): void {
+    if (this.metricsBuffer.length < 10) return; // Need minimum data
+    
+    const latest = this.metricsBuffer[this.metricsBuffer.length - 1];
+    const recent = this.metricsBuffer.slice(-10); // Last 10 data points
+    
+    // Calculate statistical thresholds for anomaly detection
+    const metrics = ['responseTime', 'memoryUsage', 'requestRate', 'errorRate'] as const;
+    
+    for (const metric of metrics) {
+      const values = recent.map(m => m[metric] as number);
+      const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+      const stdDev = Math.sqrt(values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length);
+      
+      const currentValue = latest[metric] as number;
+      const zScore = stdDev > 0 ? Math.abs(currentValue - mean) / stdDev : 0;
+      
+      // Detect anomalies using z-score (> 2 standard deviations)
+      if (zScore > 2) {
+        const anomalyType = currentValue > mean ? 'spike' : 'drop';
+        console.warn(`🔍 ANOMALY DETECTED: ${metric} ${anomalyType} - value: ${currentValue.toFixed(2)}, z-score: ${zScore.toFixed(2)}`);
+        
+        // Create anomaly alert
+        this.createAnomalyAlert(metric, currentValue, mean, zScore, anomalyType);
+      }
+    }
+    
+    // Detect sudden changes in trends
+    this.detectTrendAnomalies();
+  }
+
+  private createAnomalyAlert(metric: string, value: number, baseline: number, zScore: number, type: 'spike' | 'drop'): void {
+    const alert: PerformanceAlert = {
+      id: `anomaly_${metric}_${Date.now()}`,
+      type: zScore > 3 ? 'critical' : 'warning',
+      metric: `anomaly_${metric}`,
+      value,
+      threshold: baseline,
+      message: `Statistical anomaly in ${metric}: ${type} detected (z-score: ${zScore.toFixed(2)})`,
+      timestamp: Date.now(),
+      resolved: false
+    };
+    
+    this.alerts.push(alert);
+    console.warn(`🚨 ANOMALY ALERT: ${alert.message}`);
+  }
+
+  private detectTrendAnomalies(): void {
+    if (this.metricsBuffer.length < 20) return;
+    
+    // Check for sudden trend changes
+    const recentTrends = this.metricsBuffer.slice(-10);
+    const olderTrends = this.metricsBuffer.slice(-20, -10);
+    
+    const metrics = ['responseTime', 'memoryUsage', 'errorRate'] as const;
+    
+    for (const metric of metrics) {
+      const recentAvg = recentTrends.reduce((sum, m) => sum + (m[metric] as number), 0) / recentTrends.length;
+      const olderAvg = olderTrends.reduce((sum, m) => sum + (m[metric] as number), 0) / olderTrends.length;
+      
+      const changePercent = Math.abs((recentAvg - olderAvg) / olderAvg) * 100;
+      
+      // Detect significant trend changes (>30% change)
+      if (changePercent > 30) {
+        const direction = recentAvg > olderAvg ? 'increased' : 'decreased';
+        console.info(`📈 TREND ANOMALY: ${metric} has ${direction} by ${changePercent.toFixed(1)}% in recent period`);
+      }
+    }
+  }
+
   private analyzeCorrelations(): void {
     if (this.metricsBuffer.length < 30) return; // Need sufficient data
     
