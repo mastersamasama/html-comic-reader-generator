@@ -1525,6 +1525,96 @@ class MangaServer {
     }
   }
 
+  /**
+   * Generate comprehensive system stats including optimization metrics
+   */
+  private async getStats(): Promise<Response> {
+    try {
+      // Simple base stats first
+      const baseStats = {
+        server: {
+          uptime: process.uptime(),
+          memory: process.memoryUsage(),
+          platform: `${process.platform} ${process.arch}`
+        },
+        pipeline: {
+          totalRequests: 0,
+          routingTime: 0,
+          processingTime: 0,
+          cacheHitRate: 0,
+          avgPipelineTime: 0,
+          cacheSize: 0,
+          routeCacheSize: 0
+        }
+      };
+
+      // Try to get optimization system metrics safely
+      try {
+        if (this.optimizationSystem && typeof this.optimizationSystem.getSystemMetrics === 'function') {
+          const systemMetrics = this.optimizationSystem.getSystemMetrics();
+          
+          if (systemMetrics?.pipeline) {
+            baseStats.pipeline = {
+              totalRequests: systemMetrics.pipeline.totalRequests || 0,
+              routingTime: systemMetrics.pipeline.routingTime || 0,
+              processingTime: systemMetrics.pipeline.processingTime || 0,
+              cacheHitRate: systemMetrics.pipeline.cacheHitRate || 0,
+              avgPipelineTime: systemMetrics.pipeline.avgPipelineTime || 0,
+              cacheSize: systemMetrics.pipeline.cacheSize || 0,
+              routeCacheSize: systemMetrics.pipeline.routeCacheSize || 0
+            };
+          }
+        }
+      } catch (optError) {
+        console.log('Optimization system metrics unavailable:', optError.message);
+      }
+      
+      return new Response(JSON.stringify(baseStats), {
+        status: 200,
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'X-Optimization-Level': 'extreme',
+          'X-Cache-Enabled': 'hybrid-multi-tier',
+          'X-Memory-Pool': 'advanced-numa',
+          'X-IO-Batch': 'enabled',
+          'X-Search-Engine': 'advanced',
+          'X-Analytics': 'enabled'
+        }
+      });
+    } catch (error) {
+      console.error('Stats API Critical Error:', error);
+      
+      // Most basic fallback possible
+      return new Response(JSON.stringify({
+        server: {
+          uptime: process.uptime(),
+          memory: process.memoryUsage(),
+          platform: process.platform
+        },
+        pipeline: {
+          totalRequests: 0,
+          routingTime: 0,
+          processingTime: 0,
+          cacheHitRate: 0,
+          avgPipelineTime: 0,
+          cacheSize: 0,
+          routeCacheSize: 0
+        },
+        error: error.message,
+        fallback: true
+      }), {
+        status: 200,
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+    }
+  }
+
   start() {
     const server = serve({
       port: CONFIG.port,
