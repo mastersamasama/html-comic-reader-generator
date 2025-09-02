@@ -174,7 +174,7 @@ describe("Manga Server - Current Implementation", () => {
     expect(memoryRatio).toBeLessThan(2.0); // Allow for optimization efficiency
   });
 
-  test("pipeline optimization should show improved cache hit rates", async () => {
+  test("pipeline optimization should achieve high cache hit rates", async () => {
     // Make same request multiple times to test caching
     const requests = Array.from({ length: 20 }, () => 
       fetch(`${BASE_URL}/api/stats`).then(r => r.json())
@@ -188,7 +188,7 @@ describe("Manga Server - Current Implementation", () => {
     // Pipeline should show high cache hit rate after repeated requests
     expect(data.pipeline.totalRequests).toBeGreaterThan(20);
     
-    // Cache hit rate should improve with repeated requests (may start low)
+    // Cache hit rate should increase with repeated requests (may start low)
     expect(data.pipeline.cacheHitRate).toBeGreaterThanOrEqual(0);
     
     // Pipeline timing should be very fast

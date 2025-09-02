@@ -8,17 +8,18 @@ describe("Manga Server - Code Structure Tests", () => {
     expect(existsSync(serverPath)).toBe(true);
   });
   
-  test("configuration files exist", () => {
-    const configDir = join(import.meta.dir, "../config");
-    const dockerFile = join(configDir, "Dockerfile");
-    const dockerCompose = join(configDir, "docker-compose.yml");
+  test("server source files exist", () => {
+    const srcDir = join(import.meta.dir, "../src");
+    const serverFile = join(srcDir, "optimized-server.ts");
+    const scriptsDir = join(import.meta.dir, "../scripts");
     
-    expect(existsSync(dockerFile)).toBe(true);
-    expect(existsSync(dockerCompose)).toBe(true);
+    expect(existsSync(srcDir)).toBe(true);
+    expect(existsSync(serverFile)).toBe(true);
+    expect(existsSync(scriptsDir)).toBe(true);
   });
   
-  test("package.json has required scripts", async () => {
-    const packagePath = join(import.meta.dir, "../package.json");
+  test("parent package.json has required scripts", async () => {
+    const packagePath = join(import.meta.dir, "../../package.json");
     expect(existsSync(packagePath)).toBe(true);
     
     const packageText = await Bun.file(packagePath).text();
@@ -84,9 +85,11 @@ describe("Manga Server - Code Structure Tests", () => {
 });
 
 describe("Manga Server - Environment Configuration", () => {
-  test("environment file template exists", () => {
-    const envPath = join(import.meta.dir, "../config/.env");
-    expect(existsSync(envPath)).toBe(true);
+  test("server has environment configuration", async () => {
+    const serverPath = join(import.meta.dir, "../src/optimized-server.ts");
+    const serverContent = await Bun.file(serverPath).text();
+    expect(serverContent).toContain("process.env");
+    expect(serverContent).toContain("NODE_ENV");
   });
   
   test("scripts directory has all management tools", () => {
@@ -105,22 +108,14 @@ describe("Manga Server - Environment Configuration", () => {
     }
   });
   
-  test("Docker configuration is complete", async () => {
-    const dockerfilePath = join(import.meta.dir, "../config/Dockerfile");
-    const dockerComposePath = join(import.meta.dir, "../config/docker-compose.yml");
+  test("Server configuration has production settings", async () => {
+    const serverPath = join(import.meta.dir, "../src/optimized-server.ts");
+    const serverContent = await Bun.file(serverPath).text();
     
-    const dockerfileContent = await Bun.file(dockerfilePath).text();
-    const dockerComposeContent = await Bun.file(dockerComposePath).text();
-    
-    // Check Dockerfile has security features
-    expect(dockerfileContent).toContain("adduser -D -u 1000");
-    expect(dockerfileContent).toContain("USER manga");
-    expect(dockerfileContent).toContain("EXPOSE 80");
-    
-    // Check docker-compose has required services
-    expect(dockerComposeContent).toContain("manga-server");
-    expect(dockerComposeContent).toContain("NODE_ENV=production");
-    expect(dockerComposeContent).toContain("HOSTNAME=0.0.0.0");
+    // Check server has production configuration
+    expect(serverContent).toContain("NODE_ENV");
+    expect(serverContent).toContain("process.env");
+    expect(serverContent).toContain("production");
   });
   
   test("README documentation exists and is comprehensive", async () => {

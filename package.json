@@ -5,7 +5,6 @@
   "type": "module",
   "scripts": {
     "start": "bun run manga-server/src/optimized-server.ts",
-    "start:ultra": "bun run manga-server/src/ultra-performance-server.ts",
     "dev": "bun run --hot manga-server/src/optimized-server.ts",
     "server": "bun run start",
     "setup": "bun run manga-server/scripts/setup.ts",
@@ -25,8 +24,6 @@
     "test": "cd manga-server && NODE_ENV=test CACHE_SIZE_MB=512 MAX_CONNECTIONS=1000 bun test",
     "test:with-server": "concurrently \"NODE_ENV=test CACHE_SIZE_MB=512 MAX_CONNECTIONS=1000 bun run start\" \"sleep 5 && bun run test\" --kill-others --success first",
     "test:perf": "bun run manga-server/scripts/performance-test.ts",
-    "docker": "cd manga-server && bun run docker:compose",
-    "docker-dev": "cd manga-server && bun run docker:compose:dev",
     "update-all": "bun run full-gen && echo '📚 All manga readers updated!'",
     "rebuild-index": "rm -f manga-server/data/manga-index.json && echo '🔄 Index will be rebuilt on next server start'"
   },

@@ -300,14 +300,14 @@ async function main() {
     if (success) {
       console.log('\n🚀 EXTREME performance benchmark PASSED!');
     } else {
-      console.log('\n⚠️ Target performance not achieved, but improvements detected.');
+      console.log('\n⚠️ Target performance not achieved, but optimizations show positive impact.');
     }
     
     process.exit(success ? 0 : 1);
   } catch (error) {
     console.error('❌ Extreme benchmark failed:', error);
     console.log('\nEnsure the extreme server is running:');
-    console.log('   bun run src/bulletproof-extreme-server.ts');
+    console.log('   bun run src/optimized-server.ts');
     process.exit(1);
   }
 }

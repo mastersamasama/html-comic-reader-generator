@@ -4,7 +4,7 @@ import "./setup"; // Import test server setup
 describe("Manga Server - Cache Performance", () => {
   const BASE_URL = "http://localhost:80";
   
-  test("cache should improve response times on repeated requests", async () => {
+  test("cache should reduce response times on repeated requests", async () => {
     const endpoint = `${BASE_URL}/api/stats`;
     
     // First request (cache miss)

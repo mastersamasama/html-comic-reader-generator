@@ -5,7 +5,7 @@
  * Features: Advanced caching, streaming, compression, WebSocket sync
  * 
  * @author Manga Server Team
- * @version 2.0.0
+ * @version 3.0.0
  * @license MIT
  */
 
@@ -18,7 +18,7 @@ import { createHash } from "node:crypto";
 import { IntegratedOptimizationSystem } from './optimizations/integrated-optimization-system.ts';
 
 // ============================================================================
-// BULLETPROOF EXTREME Performance Configuration
+// High-Performance Configuration
 // ============================================================================
 
 // Memory Pool for Zero-GC Performance
@@ -143,7 +143,7 @@ const MEMORY_POOL = new MemoryPool();
 const SEARCH_BLOOM = new BloomFilter(50000, 0.001); // Very low false positive rate
 
 // ============================================================================
-// BULLETPROOF Windows Process Cleanup System  
+// Windows Process Cleanup System  
 // ============================================================================
 
 class BulletproofShutdown {
@@ -318,7 +318,7 @@ interface ReadingProgress {
 }
 
 // ============================================================================
-// ULTRA-FAST Hash-Based Cache Manager (No LRU overhead)
+// Hash-Based Cache Manager (No LRU overhead)
 // ============================================================================
 
 class UltraFastCacheManager {
@@ -1657,7 +1657,7 @@ class MangaServer {
     
     console.log(`
 ╔═══════════════════════════════════════════════════════════════════════╗
-║           💪 UNLIMITED Performance Manga Server v6.0 💪           ║
+║           💪 High-Performance Manga Server v3.0 💪           ║
 ╠═══════════════════════════════════════════════════════════════════════╣
 ║  Status:  💪 UNLIMITED MODE - 64GB RAM UNLEASHED                     ║
 ║  URL:     http://${CONFIG.hostname}:${CONFIG.port.toString().padEnd(50)} ║
