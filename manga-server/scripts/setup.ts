@@ -6,6 +6,7 @@
  */
 
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
 class SetupManager {
@@ -91,7 +92,7 @@ class SetupManager {
     
     // Create sample structure if empty
     try {
-      const entries = await Bun.readdir(mangaDir);
+      const entries = await readdir(mangaDir);
       if (entries.length === 0) {
         console.log('   ℹ️  Creating sample manga structure...');
         

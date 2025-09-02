@@ -5,6 +5,9 @@
  * Monitors server health and performance metrics
  */
 
+import { readdir } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+
 interface HealthCheckResult {
   status: 'healthy' | 'warning' | 'critical';
   checks: Array<{
@@ -230,8 +233,8 @@ class HealthChecker {
     const checks = [];
     
     try {
-      const mangaRoot = process.env.MANGA_ROOT || '../本';
-      const exists = await Bun.readdir(mangaRoot).then(() => true).catch(() => false);
+      const mangaRoot = process.env.MANGA_ROOT || './本';
+      const exists = existsSync(mangaRoot);
       
       checks.push({
         name: 'Manga Directory',
@@ -241,7 +244,7 @@ class HealthChecker {
       });
       
       if (exists) {
-        const entries = await Bun.readdir(mangaRoot);
+        const entries = await readdir(mangaRoot);
         const mangaDirs = entries.filter(entry => !entry.startsWith('.'));
         
         checks.push({

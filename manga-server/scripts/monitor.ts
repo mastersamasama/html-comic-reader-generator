@@ -155,4 +155,160 @@ class ServerMonitor {
     // Memory pressure check
     const memoryPressure = parseFloat(current.cache.memoryPressure);
     if (memoryPressure > this.config.alertThresholds.memoryUsage) {
-      this.createAlert('critical', `High memory pressure: ${current.cache.memoryPressure}`);\n    } else if (memoryPressure > this.config.alertThresholds.memoryUsage - 10) {\n      this.createAlert('warning', `Memory pressure increasing: ${current.cache.memoryPressure}`);\n    }\n    \n    // Cache performance check\n    const hitRate = parseFloat(current.cache.hitRate);\n    if (hitRate < this.config.alertThresholds.cacheHitRate) {\n      this.createAlert('warning', `Low cache hit rate: ${current.cache.hitRate}`);\n    }\n    \n    // Display current stats\n    console.log(`📊 Stats Update [${timestamp}]`);\n    console.log(`   Cache: ${current.cache.size} entries, ${current.cache.hitRate} hit rate`);\n    console.log(`   Memory: ${current.cache.memoryPressure} pressure`);\n    \n    // Show delta if we have previous stats\n    if (previous) {\n      const hitsDelta = current.cache.hits - previous.cache.hits;\n      const missesDelta = current.cache.misses - previous.cache.misses;\n      \n      if (hitsDelta > 0 || missesDelta > 0) {\n        console.log(`   Delta: +${hitsDelta} hits, +${missesDelta} misses`);\n      }\n    }\n    \n    console.log('');\n  }\n  \n  private createAlert(type: 'warning' | 'critical', message: string) {\n    const alertId = `${type}-${Date.now()}`;\n    \n    // Check if similar alert already exists\n    const existingAlert = this.alerts.find(a => \n      !a.resolved && a.message.includes(message.split(':')[0])\n    );\n    \n    if (existingAlert) {\n      return; // Don't spam duplicate alerts\n    }\n    \n    const alert: Alert = {\n      id: alertId,\n      type,\n      message,\n      timestamp: new Date(),\n      resolved: false\n    };\n    \n    this.alerts.push(alert);\n    \n    // Display alert\n    const icon = type === 'critical' ? '🚨' : '⚠️';\n    const timestamp = alert.timestamp.toLocaleTimeString();\n    \n    console.log(`${icon} ALERT [${timestamp}] ${type.toUpperCase()}: ${message}`);\n    \n    // Send notifications if configured\n    this.sendNotification(alert);\n  }\n  \n  private resolveAlerts(patterns: string[]) {\n    this.alerts.forEach(alert => {\n      if (!alert.resolved && patterns.some(pattern => alert.message.includes(pattern))) {\n        alert.resolved = true;\n        console.log(`✅ RESOLVED: ${alert.message}`);\n      }\n    });\n  }\n  \n  private async sendNotification(alert: Alert) {\n    // Webhook notification\n    if (this.config.notifications.webhook) {\n      try {\n        await fetch(this.config.notifications.webhook, {\n          method: 'POST',\n          headers: { 'Content-Type': 'application/json' },\n          body: JSON.stringify({\n            type: alert.type,\n            message: alert.message,\n            timestamp: alert.timestamp.toISOString(),\n            service: 'manga-server'\n          })\n        });\n      } catch (error) {\n        console.error('Failed to send webhook notification:', error.message);\n      }\n    }\n    \n    // Additional notification methods can be added here\n  }\n  \n  stop() {\n    console.log('\\n🛑 Stopping server monitor...');\n    \n    this.isRunning = false;\n    \n    if (this.healthInterval) {\n      clearInterval(this.healthInterval);\n    }\n    \n    if (this.statsInterval) {\n      clearInterval(this.statsInterval);\n    }\n    \n    // Display final alert summary\n    const activeAlerts = this.alerts.filter(a => !a.resolved);\n    if (activeAlerts.length > 0) {\n      console.log(`\\n⚠️  ${activeAlerts.length} unresolved alerts:`);\n      activeAlerts.forEach(alert => {\n        console.log(`   ${alert.type.toUpperCase()}: ${alert.message}`);\n      });\n    }\n    \n    console.log('\\n👋 Monitor stopped');\n    process.exit(0);\n  }\n  \n  getAlerts() {\n    return this.alerts;\n  }\n  \n  getActiveAlerts() {\n    return this.alerts.filter(a => !a.resolved);\n  }\n}\n\n// CLI execution\nasync function main() {\n  const args = process.argv.slice(2);\n  \n  const config: Partial<MonitorConfig> = {\n    interval: parseInt(args.find(arg => arg.startsWith('--stats-interval='))?.split('=')[1] || '10000'),\n    healthCheckInterval: parseInt(args.find(arg => arg.startsWith('--health-interval='))?.split('=')[1] || '30000')\n  };\n  \n  // Add webhook if provided\n  const webhook = args.find(arg => arg.startsWith('--webhook='))?.split('=')[1];\n  if (webhook) {\n    config.notifications = { webhook };\n  }\n  \n  const monitor = new ServerMonitor(config);\n  \n  try {\n    await monitor.start();\n  } catch (error) {\n    console.error('❌ Monitor failed:', error);\n    process.exit(1);\n  }\n}\n\nif (import.meta.main) {\n  main();\n}\n\nexport { ServerMonitor };
+      this.createAlert('critical', `High memory pressure: ${current.cache.memoryPressure}`);
+    } else if (memoryPressure > this.config.alertThresholds.memoryUsage - 10) {
+      this.createAlert('warning', `Memory pressure increasing: ${current.cache.memoryPressure}`);
+    }
+    
+    // Cache performance check
+    const hitRate = parseFloat(current.cache.hitRate);
+    if (hitRate < this.config.alertThresholds.cacheHitRate) {
+      this.createAlert('warning', `Low cache hit rate: ${current.cache.hitRate}`);
+    }
+    
+    // Display current stats
+    console.log(`📊 Stats Update [${timestamp}]`);
+    console.log(`   Cache: ${current.cache.size} entries, ${current.cache.hitRate} hit rate`);
+    console.log(`   Memory: ${current.cache.memoryPressure} pressure`);
+    
+    // Show delta if we have previous stats
+    if (previous) {
+      const hitsDelta = current.cache.hits - previous.cache.hits;
+      const missesDelta = current.cache.misses - previous.cache.misses;
+      
+      if (hitsDelta > 0 || missesDelta > 0) {
+        console.log(`   Delta: +${hitsDelta} hits, +${missesDelta} misses`);
+      }
+    }
+    
+    console.log('');
+  }
+  
+  private createAlert(type: 'warning' | 'critical', message: string) {
+    const alertId = `${type}-${Date.now()}`;
+    
+    // Check if similar alert already exists
+    const existingAlert = this.alerts.find(a => 
+      !a.resolved && a.message.includes(message.split(':')[0])
+    );
+    
+    if (existingAlert) {
+      return; // Don't spam duplicate alerts
+    }
+    
+    const alert: Alert = {
+      id: alertId,
+      type,
+      message,
+      timestamp: new Date(),
+      resolved: false
+    };
+    
+    this.alerts.push(alert);
+    
+    // Display alert
+    const icon = type === 'critical' ? '🚨' : '⚠️';
+    const timestamp = alert.timestamp.toLocaleTimeString();
+    
+    console.log(`${icon} ALERT [${timestamp}] ${type.toUpperCase()}: ${message}`);
+    
+    // Send notifications if configured
+    this.sendNotification(alert);
+  }
+  
+  private resolveAlerts(patterns: string[]) {
+    this.alerts.forEach(alert => {
+      if (!alert.resolved && patterns.some(pattern => alert.message.includes(pattern))) {
+        alert.resolved = true;
+        console.log(`✅ RESOLVED: ${alert.message}`);
+      }
+    });
+  }
+  
+  private async sendNotification(alert: Alert) {
+    // Webhook notification
+    if (this.config.notifications.webhook) {
+      try {
+        await fetch(this.config.notifications.webhook, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: alert.type,
+            message: alert.message,
+            timestamp: alert.timestamp.toISOString(),
+            service: 'manga-server'
+          })
+        });
+      } catch (error) {
+        console.error('Failed to send webhook notification:', error.message);
+      }
+    }
+    
+    // Additional notification methods can be added here
+  }
+  
+  stop() {
+    console.log('\n🛑 Stopping server monitor...');
+    
+    this.isRunning = false;
+    
+    if (this.healthInterval) {
+      clearInterval(this.healthInterval);
+    }
+    
+    if (this.statsInterval) {
+      clearInterval(this.statsInterval);
+    }
+    
+    // Display final alert summary
+    const activeAlerts = this.alerts.filter(a => !a.resolved);
+    if (activeAlerts.length > 0) {
+      console.log(`\n⚠️  ${activeAlerts.length} unresolved alerts:`);
+      activeAlerts.forEach(alert => {
+        console.log(`   ${alert.type.toUpperCase()}: ${alert.message}`);
+      });
+    }
+    
+    console.log('\n👋 Monitor stopped');
+    process.exit(0);
+  }
+  
+  getAlerts() {
+    return this.alerts;
+  }
+  
+  getActiveAlerts() {
+    return this.alerts.filter(a => !a.resolved);
+  }
+}
+
+// CLI execution
+async function main() {
+  const args = process.argv.slice(2);
+  
+  const config: Partial<MonitorConfig> = {
+    interval: parseInt(args.find(arg => arg.startsWith('--stats-interval='))?.split('=')[1] || '10000'),
+    healthCheckInterval: parseInt(args.find(arg => arg.startsWith('--health-interval='))?.split('=')[1] || '30000')
+  };
+  
+  // Add webhook if provided
+  const webhook = args.find(arg => arg.startsWith('--webhook='))?.split('=')[1];
+  if (webhook) {
+    config.notifications = { webhook };
+  }
+  
+  const monitor = new ServerMonitor(config);
+  
+  try {
+    await monitor.start();
+  } catch (error) {
+    console.error('❌ Monitor failed:', error);
+    process.exit(1);
+  }
+}
+
+if (import.meta.main) {
+  main();
+}
+
+export { ServerMonitor };
