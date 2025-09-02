@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # 📚 Manga Server - High-Performance Manga Reading System
 
 A high-performance, self-configuring manga reading server that automatically detects your system specifications and optimizes itself for peak performance. Generate beautiful bookshelf and reader pages for your manga collection with zero configuration required.
