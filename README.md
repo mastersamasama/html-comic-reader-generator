@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # 📚 Manga Server - High-Performance Manga Reading System
 
 A high-performance, self-configuring manga reading server that automatically detects your system specifications and optimizes itself for peak performance. Generate beautiful bookshelf and reader pages for your manga collection with zero configuration required.
@@ -94,13 +93,11 @@ The system automatically classifies your hardware into performance tiers:
 - **Network**: Interface types, bandwidth capabilities
 - **Performance**: Benchmark scores, system responsiveness
 
-### ⚙️ Configuration Files
+### ⚙️ Configuration File
 
-After auto-configuration, you'll find these files:
+After auto-configuration, you'll find:
 
-- `manga-server/config/auto-config.json` - Generated optimal settings
-- `manga-server/config/user-config.json` - Your custom overrides  
-- `manga-server/config/.env` - Environment variables for the server
+- `manga-server/.env` - All server configuration in a single environment file
 
 ## 📁 Organizing Your Manga
 
@@ -329,7 +326,7 @@ The server uses environment variables for configuration. These can be set in the
 MANGA_ROOT="/path/to/your/manga" bun run start
 
 # Or edit the .env file directly
-echo "MANGA_ROOT=/path/to/your/manga" >> manga-server/config/.env
+echo "MANGA_ROOT=/path/to/your/manga" >> manga-server/.env
 ```
 
 **Example: Performance Tuning**
@@ -355,7 +352,7 @@ ENABLE_WEBSOCKET=true ENABLE_METRICS=true bun run start
 
 ### 🔧 .env File Example
 
-After running auto-configuration, your `.env` file might look like:
+After running auto-configuration, your `manga-server/.env` file might look like:
 
 ```bash
 # Auto-generated configuration for HIGH performance tier
@@ -466,7 +463,7 @@ bun run config:auto --force
 **❌ .env File Not Loading**
 ```bash
 # Check if file exists
-ls manga-server/config/.env
+ls manga-server/.env
 
 # Recreate with auto-config
 bun run config:auto --force
@@ -488,7 +485,7 @@ bun run config:wizard
 bun run config:show | grep PATH
 
 # Update manga path
-echo "MANGA_ROOT=/new/path/to/manga" >> manga-server/config/.env
+echo "MANGA_ROOT=/new/path/to/manga" >> manga-server/.env
 ```
 
 ### Performance Troubleshooting

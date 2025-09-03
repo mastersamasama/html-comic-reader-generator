@@ -8,6 +8,7 @@ import { join, resolve } from 'node:path';
 import hardwareDetector from './hardware-detector';
 import configGenerator from './config-generator';
 import interactiveWizard from './interactive-wizard';
+import { SimpleInput } from './simple-input';
 import type { SystemSpecs } from './hardware-detector';
 import type { ServerConfig } from './config-generator';
 
@@ -26,15 +27,15 @@ export class AutoConfigurator {
   private config?: ServerConfig;
   
   constructor() {
-    this.configPath = resolve('./manga-server/config/auto-config.json');
-    this.userConfigPath = resolve('./manga-server/config/user-config.json');
+    this.configPath = resolve('./manga-server/.env');
+    this.userConfigPath = resolve('./manga-server/.env'); // Single .env file
     
-    // Ensure config directory exists
+    // Ensure manga-server directory exists
     this.ensureConfigDirectory();
   }
   
   private ensureConfigDirectory(): void {
-    const configDir = resolve('./manga-server/config');
+    const configDir = resolve('./manga-server');
     if (!existsSync(configDir)) {
       mkdirSync(configDir, { recursive: true });
     }
@@ -86,6 +87,13 @@ export class AutoConfigurator {
     // Generate base configuration
     let generatedConfig = configGenerator.generateConfig(this.specs, userPrefs);
     
+    // Always prompt for manga path if not exists or in auto mode
+    const currentMangaPath = generatedConfig.mangaPath || './manga-collection';
+    if (!options.interactive && !existsSync(currentMangaPath)) {
+      console.log('\n📁 Manga collection path configuration:\n');
+      generatedConfig.mangaPath = await this.promptMangaPath(currentMangaPath);
+    }
+    
     // Step 4: Interactive customization (if requested)
     if (options.interactive) {
       console.log('\n🎨 Step 4/4: Interactive customization...\n');
@@ -132,53 +140,29 @@ export class AutoConfigurator {
   }
   
   private async askUseExisting(): Promise<boolean> {
-    const readline = require('node:readline/promises').createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
-    
-    const answer = await readline.question(
-      'Use existing configuration? (Y/n): '
-    );
-    readline.close();
-    
-    return !answer.trim() || answer.toLowerCase().startsWith('y');
+    return await SimpleInput.confirm('Use existing configuration?', true);
   }
   
   private loadExistingConfig(): ServerConfig {
-    let config: ServerConfig | null = null;
-    
-    // Load auto-generated config
-    if (existsSync(this.configPath)) {
-      const autoConfig = JSON.parse(
-        require('fs').readFileSync(this.configPath, 'utf-8')
-      );
-      config = autoConfig;
-    }
-    
-    // Merge with user config if exists
-    if (existsSync(this.userConfigPath)) {
-      const userConfig = JSON.parse(
-        require('fs').readFileSync(this.userConfigPath, 'utf-8')
-      );
-      config = { ...config, ...userConfig };
-    }
-    
-    if (!config) {
+    // Load from single .env file
+    if (!existsSync(this.configPath)) {
       throw new Error('No configuration found');
     }
+    
+    const envContent = require('fs').readFileSync(this.configPath, 'utf-8');
+    const config: ServerConfig = configGenerator.parseEnvToConfig(envContent);
     
     return config;
   }
   
   private loadUserPreferences(): Partial<ServerConfig> | undefined {
-    if (existsSync(this.userConfigPath)) {
+    // User preferences are now in the same .env file
+    if (existsSync(this.configPath)) {
       try {
-        return JSON.parse(
-          require('fs').readFileSync(this.userConfigPath, 'utf-8')
-        );
+        const envContent = require('fs').readFileSync(this.configPath, 'utf-8');
+        return configGenerator.parseEnvToConfig(envContent);
       } catch {
-        console.warn('⚠️ Failed to load user preferences');
+        console.warn('⚠️ Failed to load preferences from .env');
       }
     }
     return undefined;
@@ -208,17 +192,11 @@ export class AutoConfigurator {
   }
   
   private async saveConfiguration(config: ServerConfig, outputPath?: string): Promise<void> {
-    const savePath = outputPath || this.configPath;
-    
-    // Save full configuration
-    await Bun.write(savePath, JSON.stringify(config, null, 2));
-    console.log(`   ✅ Configuration saved to ${savePath}`);
-    
-    // Also export as environment variables
-    const envPath = join(resolve('./manga-server/config'), '.env');
+    // Export directly as environment variables to single .env file
+    const envPath = outputPath || resolve('./manga-server/.env');
     const envContent = configGenerator.exportEnvVars(config);
     await Bun.write(envPath, envContent);
-    console.log(`   ✅ Environment variables saved to ${envPath}`);
+    console.log(`   ✅ Configuration saved to ${envPath}`);
   }
   
   private async testConfiguration(): Promise<boolean> {
@@ -313,6 +291,37 @@ export class AutoConfigurator {
     process.env.PERFORMANCE_MODE = config.performanceMode;
   }
   
+  private async promptMangaPath(defaultPath: string): Promise<string> {
+    while (true) {
+      const answer = await SimpleInput.prompt(
+        `Enter manga collection path (default: ${defaultPath}): `
+      );
+      
+      const path = answer.trim() || defaultPath;
+      const resolvedPath = resolve(path);
+      
+      if (existsSync(resolvedPath)) {
+        console.log(`   ✅ Path exists: ${resolvedPath}`);
+        return resolvedPath;
+      }
+      
+      console.log(`   ⚠️ Path does not exist: ${resolvedPath}`);
+      
+      const shouldCreate = await SimpleInput.confirm('Create this directory?', true);
+      
+      if (shouldCreate) {
+        try {
+          require('fs').mkdirSync(resolvedPath, { recursive: true });
+          console.log('   ✅ Directory created');
+          return resolvedPath;
+        } catch (error) {
+          console.log('   ❌ Failed to create directory:', (error as Error).message);
+          console.log('   Please enter a different path.');
+        }
+      }
+    }
+  }
+  
   private displayNextSteps(): void {
     console.log('📋 NEXT STEPS:\n');
     console.log('   1. Start the server:');
@@ -331,18 +340,8 @@ export class AutoConfigurator {
   async reset(): Promise<void> {
     console.log('🔄 Resetting configuration...\n');
     
-    // Remove configuration files
-    if (existsSync(this.configPath)) {
-      require('fs').unlinkSync(this.configPath);
-      console.log('   ✅ Removed auto-config.json');
-    }
-    
-    if (existsSync(this.userConfigPath)) {
-      require('fs').unlinkSync(this.userConfigPath);
-      console.log('   ✅ Removed user-config.json');
-    }
-    
-    const envPath = join(resolve('./manga-server/config'), '.env');
+    // Remove single .env file
+    const envPath = resolve('./manga-server/.env');
     if (existsSync(envPath)) {
       require('fs').unlinkSync(envPath);
       console.log('   ✅ Removed .env file');
@@ -352,19 +351,16 @@ export class AutoConfigurator {
   }
   
   async showConfig(): Promise<void> {
-    if (!this.hasExistingConfig()) {
+    const envPath = resolve('./manga-server/.env');
+    if (!existsSync(envPath)) {
       console.log('❌ No configuration found. Run auto-configuration first.');
       return;
     }
     
-    const config = this.loadExistingConfig();
+    const envContent = require('fs').readFileSync(envPath, 'utf-8');
     
-    console.log('\n📋 CURRENT CONFIGURATION:\n');
-    console.log(JSON.stringify(config, null, 2));
-    
-    // Also show as environment variables
-    console.log('\n🔧 ENVIRONMENT VARIABLES:\n');
-    console.log(configGenerator.exportEnvVars(config));
+    console.log('\n🔧 CURRENT CONFIGURATION (.env):\n');
+    console.log(envContent);
   }
   
   getConfig(): ServerConfig | undefined {

@@ -302,6 +302,47 @@ export class ConfigGenerator {
     return envVars.join('\n');
   }
   
+  parseEnvToConfig(envContent: string): ServerConfig {
+    const lines = envContent.split('\n');
+    const env: any = {};
+    
+    lines.forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#')) {
+        const [key, ...valueParts] = trimmed.split('=');
+        env[key] = valueParts.join('=');
+      }
+    });
+    
+    return {
+      port: parseInt(env.PORT || '80'),
+      hostname: env.HOSTNAME || '0.0.0.0',
+      environment: env.NODE_ENV || 'production',
+      cacheSize: parseInt(env.CACHE_SIZE_MB || '1024'),
+      maxConnections: parseInt(env.MAX_CONNECTIONS || '5000'),
+      workerThreads: parseInt(env.WORKER_THREADS || '4'),
+      streamingThreshold: parseInt(env.STREAMING_THRESHOLD || '65536'),
+      compressionThreshold: parseInt(env.COMPRESSION_THRESHOLD || '1024'),
+      compressionLevel: env.COMPRESSION_LEVEL || 'balanced',
+      memoryLimit: parseInt(env.MEMORY_LIMIT_MB || '2048'),
+      gcInterval: parseInt(env.GC_INTERVAL || '30000'),
+      memoryPoolSize: parseInt(env.MEMORY_POOL_MB || '256'),
+      keepAliveTimeout: parseInt(env.KEEP_ALIVE_TIMEOUT || '5000'),
+      requestTimeout: parseInt(env.REQUEST_TIMEOUT || '30000'),
+      uploadLimit: parseInt(env.UPLOAD_LIMIT_MB || '10'),
+      enableCompression: env.ENABLE_COMPRESSION === 'true',
+      enableStreaming: env.ENABLE_STREAMING === 'true',
+      enableCaching: env.ENABLE_CACHING === 'true',
+      enableWebSocket: env.ENABLE_WEBSOCKET === 'true',
+      enableMetrics: env.ENABLE_METRICS === 'true',
+      mangaPath: env.MANGA_ROOT || './manga-collection',
+      dataPath: env.DATA_PATH || './manga-server/data',
+      logsPath: env.LOGS_PATH || './manga-server/logs',
+      autoTuning: env.AUTO_TUNING === 'true',
+      performanceMode: env.PERFORMANCE_MODE as PerformanceMode || 'balanced'
+    };
+  }
+  
   generateRecommendations(specs: SystemSpecs, config: ServerConfig): string[] {
     const recommendations: string[] = [];
     

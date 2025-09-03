@@ -3,20 +3,15 @@
  * User-friendly interface for system configuration
  */
 
-import * as readline from 'node:readline/promises';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { SimpleInput } from './simple-input';
 import type { SystemSpecs } from './hardware-detector';
 import type { ServerConfig } from './config-generator';
 
 export class InteractiveWizard {
-  private rl: readline.Interface;
-  
   constructor() {
-    this.rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
+    // No longer need readline interface - using SimpleInput
   }
   
   async run(specs: SystemSpecs, defaultConfig: ServerConfig): Promise<ServerConfig> {
@@ -32,19 +27,19 @@ export class InteractiveWizard {
       true
     );
     
+    // Always ask for manga path first
+    console.log('\n📁 First, let\'s configure your manga collection path:\n');
+    const mangaPath = await this.askMangaPath(defaultConfig.mangaPath);
+    defaultConfig.mangaPath = mangaPath;
+    
     if (useAuto) {
-      console.log('\n✅ Using recommended configuration');
-      
-      // Just ask for manga path
-      const mangaPath = await this.askMangaPath(defaultConfig.mangaPath);
-      defaultConfig.mangaPath = mangaPath;
+      console.log('\n✅ Using recommended configuration for your system');
       
       // Quick review
       await this.displayConfigSummary(defaultConfig);
       
       const confirm = await this.askYesNo('\n📋 Apply this configuration?', true);
       if (confirm) {
-        this.rl.close();
         return defaultConfig;
       }
     }
@@ -62,7 +57,6 @@ export class InteractiveWizard {
       process.exit(0);
     }
     
-    this.rl.close();
     return customConfig;
   }
   
@@ -172,11 +166,13 @@ export class InteractiveWizard {
   
   private async askMangaPath(defaultPath: string): Promise<string> {
     while (true) {
-      const answer = await this.rl.question(
-        `📁 Manga collection path (Enter for default: ${defaultPath}): `
+      const answer = await SimpleInput.prompt(
+        `Enter the path to your manga collection folder\n` +
+        `(e.g., ./manga-collection, G:\\manga\\本, /home/user/manga)\n` +
+        `Path [${defaultPath}]: `
       );
       
-      const path = answer.trim() || defaultPath;
+      const path = answer || defaultPath;
       const resolvedPath = resolve(path);
       
       if (existsSync(resolvedPath)) {
@@ -185,7 +181,7 @@ export class InteractiveWizard {
       }
       
       console.log(`   ⚠️ Path does not exist: ${resolvedPath}`);
-      const create = await this.askYesNo('   Create this directory?', true);
+      const create = await SimpleInput.confirm('   Create this directory?', true);
       
       if (create) {
         try {
@@ -193,18 +189,14 @@ export class InteractiveWizard {
           console.log('   ✅ Directory created');
           return resolvedPath;
         } catch (error) {
-          console.log('   ❌ Failed to create directory');
+          console.log('   ❌ Failed to create directory:', (error as Error).message);
         }
       }
     }
   }
   
   private async askYesNo(question: string, defaultYes: boolean): Promise<boolean> {
-    const hint = defaultYes ? '(Y/n)' : '(y/N)';
-    const answer = await this.rl.question(`${question} ${hint}: `);
-    
-    if (!answer.trim()) return defaultYes;
-    return answer.toLowerCase().startsWith('y');
+    return await SimpleInput.confirm(question, defaultYes);
   }
   
   private async askNumber(
@@ -214,7 +206,7 @@ export class InteractiveWizard {
     max: number
   ): Promise<number> {
     while (true) {
-      const answer = await this.rl.question(
+      const answer = await SimpleInput.prompt(
         `${question} (${min}-${max}, default: ${defaultValue}): `
       );
       

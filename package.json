@@ -4,7 +4,7 @@
   "description": "Complete manga management system with reader generator, bookshelf, and high-performance server",
   "type": "module",
   "scripts": {
-    "start": "bun run manga-server/src/optimized-server.ts",
+    "start": "bun run --env-file=manga-server/.env manga-server/src/optimized-server.ts",
     "dev": "bun run --hot manga-server/src/optimized-server.ts",
     "server": "bun run start",
     "setup": "bun run manga-server/scripts/setup.ts",
